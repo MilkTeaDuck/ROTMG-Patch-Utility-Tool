@@ -323,7 +323,9 @@ class ROTMGPatchUtilityGUI:
                 self.log_message("Backup created before applying patches")
                 
                 # Apply patches
-                self.patcher.apply_patches(self.resources_path.get(), patches, self.log_message, self.progress_var)
+                def update_progress(value):
+                    self.progress_var.set(value)
+                self.patcher.apply_patches(self.resources_path.get(), patches, self.log_message, update_progress)
                 
                 self.status_var.set("Patches applied successfully")
                 self.progress_var.set(100)
