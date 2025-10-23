@@ -7,9 +7,6 @@ import re
 from patcher_core import ROTMGPatcher
 from patch_manager import PatchManager
 from object_parser import ObjectBlockParser
-from auth_manager import AuthManager, LoginDialog
-from config_manager import ConfigManager, SettingsDialog
-from auth_mode_manager import AuthModeManager, AuthModeSelectorDialog
 
 class ROTMGPatchUtilityGUI:
     def __init__(self, root):
@@ -17,18 +14,6 @@ class ROTMGPatchUtilityGUI:
         self.root.title("ROTMG Assets Patch Utility Tool")
         self.root.geometry("1000x700")
         self.root.resizable(True, True)
-        
-        # Initialize authentication and configuration
-        self.auth_mode_manager = AuthModeManager()
-        self.config_manager = ConfigManager(self.auth_mode_manager.auth_manager)
-        self.current_user = None
-        
-        # Check if user needs to authenticate
-        if not self.auth_mode_manager.is_authenticated():
-            self.show_authentication()
-            if not self.current_user:
-                self.root.destroy()
-                return
         
         # Initialize components
         self.patcher = ROTMGPatcher()
@@ -46,32 +31,6 @@ class ROTMGPatchUtilityGUI:
         self.create_widgets()
         self.load_default_patches()
     
-    def show_authentication(self):
-        """Show authentication dialog"""
-        # First show mode selector if multiple modes available
-        available_modes = self.auth_mode_manager.get_available_modes()
-        if len(available_modes) > 1:
-            mode_selector = AuthModeSelectorDialog(self.root, self.auth_mode_manager)
-            result = mode_selector.show()
-            
-            if not result or result.get("action") != "continue":
-                self.current_user = None
-                return
-        
-        # Now authenticate with selected mode
-        result = self.auth_mode_manager.authenticate(self.root)
-        
-        if result and result.get("action") in ["login", "authenticate", "validate"]:
-            self.current_user = self.auth_mode_manager.get_current_user()
-            # Update window title to show logged in user
-            auth_mode_name = self.auth_mode_manager.modes[self.auth_mode_manager.current_mode]["name"]
-            self.root.title(f"ROTMG Assets Patch Utility Tool - {auth_mode_name}: {self.current_user}")
-        else:
-            self.current_user = None
-    
-    def show_login(self):
-        """Show login dialog (legacy method for compatibility)"""
-        self.show_authentication()
     
     def create_menu(self):
         """Create application menu bar"""
@@ -90,8 +49,6 @@ class ROTMGPatchUtilityGUI:
         # Edit menu
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Edit", menu=edit_menu)
-        edit_menu.add_command(label="Settings", command=self.show_settings)
-        edit_menu.add_command(label="Authentication Settings", command=self.show_auth_settings)
         edit_menu.add_command(label="Clear Log", command=self.clear_log)
         
         # Tools menu
@@ -118,25 +75,11 @@ class ROTMGPatchUtilityGUI:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(5, weight=1)  # Updated row number
-        
-        # User info frame
-        user_frame = ttk.LabelFrame(main_frame, text="User Information", padding="5")
-        user_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
-        user_frame.columnconfigure(1, weight=1)
-        
-        # User info
-        ttk.Label(user_frame, text="Logged in as:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
-        user_label = ttk.Label(user_frame, text=self.current_user, font=("Arial", 10, "bold"))
-        user_label.grid(row=0, column=1, sticky=tk.W)
-        
-        # Logout button
-        logout_btn = ttk.Button(user_frame, text="Logout", command=self.logout)
-        logout_btn.grid(row=0, column=2, sticky=tk.E, padx=(10, 0))
+        main_frame.rowconfigure(4, weight=1)  # Updated row number
         
         # File selection frame
         file_frame = ttk.LabelFrame(main_frame, text="File Selection", padding="5")
-        file_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        file_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         file_frame.columnconfigure(1, weight=1)
         
         # Resources.assets path
@@ -151,7 +94,7 @@ class ROTMGPatchUtilityGUI:
         
         # Patch management frame
         patch_frame = ttk.LabelFrame(main_frame, text="Patch Management", padding="5")
-        patch_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        patch_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         patch_frame.columnconfigure(0, weight=1)
         
         # Patch list with checkboxes
@@ -176,7 +119,7 @@ class ROTMGPatchUtilityGUI:
         
         # Control buttons frame
         control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        control_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
         ttk.Button(control_frame, text="Create Backup", command=self.create_backup).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(control_frame, text="Restore Backup", command=self.restore_backup).pack(side=tk.LEFT, padx=(0, 5))
@@ -186,11 +129,11 @@ class ROTMGPatchUtilityGUI:
         # Progress bar
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(main_frame, variable=self.progress_var, maximum=100)
-        self.progress_bar.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.progress_bar.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Log output
         log_frame = ttk.LabelFrame(main_frame, text="Log Output", padding="5")
-        log_frame.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        log_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
         
@@ -200,7 +143,7 @@ class ROTMGPatchUtilityGUI:
         # Status bar
         self.status_var = tk.StringVar(value="Ready")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
+        status_bar.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
         
     def log_message(self, message):
         """Add message to log output"""
@@ -210,23 +153,6 @@ class ROTMGPatchUtilityGUI:
         self.log_text.config(state=tk.DISABLED)
         self.root.update_idletasks()
     
-    def logout(self):
-        """Logout current user"""
-        if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
-            self.auth_mode_manager.logout()
-            self.log_message("User logged out successfully")
-            self.root.destroy()
-    
-    def show_settings(self):
-        """Show settings dialog"""
-        settings_dialog = SettingsDialog(self.root, self.config_manager)
-        settings_dialog.show()
-    
-    def show_auth_settings(self):
-        """Show authentication settings dialog"""
-        from auth_mode_manager import AuthSettingsDialog
-        auth_settings_dialog = AuthSettingsDialog(self.root, self.auth_mode_manager)
-        auth_settings_dialog.show()
     
     def clear_log(self):
         """Clear log output"""

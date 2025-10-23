@@ -13,7 +13,6 @@ This tool is a modular .exe application that allows you to:
 
 ## Features
 
-- **🔐 Secure Authentication**: User login system with encrypted credential storage
 - **🎨 Modern GUI Interface**: Clean tkinter-based interface with menu system
 - **📦 Modular Patch System**: Add, edit, and remove patches dynamically
 - **✅ Selective Patching**: Choose which patches to apply
@@ -21,8 +20,8 @@ This tool is a modular .exe application that allows you to:
 - **📊 Real-time Logging**: Detailed progress and error reporting
 - **📈 Progress Tracking**: Visual progress bars during patching
 - **🔍 Patch Validation**: Built-in validation for patch data integrity
-- **⚙️ Comprehensive Settings**: Configurable preferences and security options
 - **🌐 Cross-platform**: Works on Windows, Linux, and macOS
+- **🔓 Open Access**: No authentication required - use immediately
 
 ## Installation
 
@@ -30,62 +29,6 @@ This tool is a modular .exe application that allows you to:
 1. Download the latest release from the [Releases](https://github.com/MilkTeaDuck/ROTMG-Patch-Utility-Tool/releases) page
 2. Extract the files to your desired location
 3. Run `ROTMG_Patch_Utility.exe`
-
-## 🔐 Authentication Options
-
-The application supports multiple authentication methods:
-
-### 🏠 Local Authentication
-- **Encrypted credential storage** using AES-256
-- **Session management** with automatic timeout
-- **Works offline** - no internet required
-- **Account lockout** after failed attempts
-
-### 🌐 Server Authentication
-- **Remote server validation** with license keys or username/password
-- **Session heartbeat** to maintain connection
-- **Offline mode** when server unavailable
-- **Centralized user management**
-
-### 🎫 Access Code Authentication
-- **Simple access codes** (e.g., DEMO-2024-001)
-- **No user accounts** required
-- **Expiration dates** and usage limits
-- **Perfect for demos** and temporary access
-
-### Setup Options
-1. **First launch**: Choose authentication method
-2. **Local**: Register new account with username/password
-3. **Server**: Enter license key or credentials
-4. **Access Code**: Enter provided access code
-
-For detailed setup instructions, see [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md).
-
-## 🔐 Authentication Setup
-
-The application includes a secure authentication system to protect your patches and settings.
-
-### First Time Setup
-1. **Launch the application** - You'll be prompted to login
-2. **Click "Register"** to create a new account
-3. **Enter your credentials**:
-   - Username (required)
-   - Email (optional)
-   - Password (must meet security requirements)
-4. **Complete registration** and login
-
-### Password Requirements
-- Minimum 8 characters
-- Must contain uppercase letters, lowercase letters, and numbers
-- Optional special characters (configurable in settings)
-
-### Security Features
-- **Encrypted credential storage** using AES-256
-- **Session management** with automatic timeout
-- **Account lockout** after failed login attempts
-- **Configurable security settings**
-
-For detailed security information, see [SECURITY.md](SECURITY.md).
 
 ### Option 2: Build from Source
 1. Clone the repository:
