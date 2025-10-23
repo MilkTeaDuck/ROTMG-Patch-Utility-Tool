@@ -1,0 +1,14 @@
+{
+  "name": "Spoof Loot Tier Potion as Potion of Speed",
+  "locator": "<Object[^>]*id=\"Loot Tier Potion\"[^>]*>.*?</Object>",
+  "patches": [
+    {
+      "target": "<Object type=\"0xc68\" id=\"Loot Tier Potion\">",
+      "replacement": "<Object type=\"0xc68\" id=\"Potion of Speed\">"
+    },
+    {
+      "target": "<Description>A potion that boosts the tier level of dropped loot. Up to +3 tiers! Lasts 30 minutes.</Description>",
+      "replacement": "<Description>A potion that boosts speed. Lasts 30 minutes.                      </Description>"
+    }
+  ]
+}

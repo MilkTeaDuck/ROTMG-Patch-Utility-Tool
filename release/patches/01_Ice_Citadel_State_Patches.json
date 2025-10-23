@@ -1,0 +1,10 @@
+{
+  "name": "Ice Citadel State Patches",
+  "locator": "(<Object[^>]*type=\"0x9CD2\"[^>]*>.*?<Class>).*?(</Class>.*?</Object>)",
+  "patches": [
+    {
+      "target": "(<Object[^>]*type=\"0x9C(?:D2|D3|C7|C8)\"[^>]*>.*?<Class>).*?(</Class>.*?</Object>)",
+      "replacement": "\\1Character\\2"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+ROTMG Patch Utility Tool
+Version: 1.0.0
+Build Date: Thu 23/10/2025 16:57:25.47
+
+Features:
+- Modular patch system
+- Character count preservation
+- Enhanced patch creation dialog
+- Auto-loading from patches directory
+- Backup and restore functionality
