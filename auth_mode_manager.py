@@ -433,6 +433,10 @@ class AuthSettingsDialog:
         # List codes button
         ttk.Button(frame, text="List Access Codes", 
                   command=self.list_access_codes).grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
+        
+        # Setup admin key button
+        ttk.Button(frame, text="Setup Admin Key", 
+                  command=self.setup_admin_key).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
     
     def generate_access_code(self):
         """Generate new access code"""
@@ -467,8 +471,25 @@ class AuthSettingsDialog:
             
             # Generate code
             code_manager = AccessCodeManager()
-            # Get admin key
-            admin_key = "admin_secret_key_2024"  # In production, this should be configurable
+            
+            # Check if admin key is set
+            if not code_manager.is_admin_key_set():
+                messagebox.showerror("Admin Key Required", 
+                                   "Admin key not configured.\nPlease set up an admin key first.")
+                return
+            
+            # Check if admin account is locked
+            if code_manager.is_admin_account_locked():
+                remaining = code_manager.get_admin_lockout_remaining()
+                messagebox.showerror("Account Locked", 
+                                   f"Admin account is locked for {remaining} more seconds.\nPlease try again later.")
+                return
+            
+            # Get admin key from user
+            admin_key = tk.simpledialog.askstring("Admin Authentication", 
+                                                "Enter admin key:", show='*')
+            if not admin_key:
+                return
             
             code = code_manager.generate_access_code(
                 name_var.get().strip(),
@@ -487,8 +508,26 @@ class AuthSettingsDialog:
     def list_access_codes(self):
         """List access codes"""
         code_manager = AccessCodeManager()
-        # Use admin key to see all codes
-        admin_key = "admin_secret_key_2024"  # In production, this should be configurable
+        
+        # Check if admin key is set
+        if not code_manager.is_admin_key_set():
+            messagebox.showerror("Admin Key Required", 
+                               "Admin key not configured.\nPlease set up an admin key first.")
+            return
+        
+        # Check if admin account is locked
+        if code_manager.is_admin_account_locked():
+            remaining = code_manager.get_admin_lockout_remaining()
+            messagebox.showerror("Account Locked", 
+                               f"Admin account is locked for {remaining} more seconds.\nPlease try again later.")
+            return
+        
+        # Get admin key from user
+        admin_key = tk.simpledialog.askstring("Admin Authentication", 
+                                            "Enter admin key:", show='*')
+        if not admin_key:
+            return
+        
         codes = code_manager.list_access_codes(admin_key)
         
         if not codes:
@@ -528,6 +567,18 @@ class AuthSettingsDialog:
         tree.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         ttk.Button(frame, text="Close", command=dialog.destroy).pack()
+    
+    def setup_admin_key(self):
+        """Setup admin key"""
+        from admin_key_manager import AdminKeySetupDialog
+        
+        setup_dialog = AdminKeySetupDialog(self.dialog)
+        result = setup_dialog.show()
+        
+        if result and result.get("success"):
+            messagebox.showinfo("Success", "Admin key set up successfully!")
+        elif result:
+            messagebox.showerror("Error", "Failed to set up admin key")
     
     def reset_defaults(self):
         """Reset settings to defaults"""

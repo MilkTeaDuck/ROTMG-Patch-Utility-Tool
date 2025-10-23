@@ -8,6 +8,7 @@ import json
 import hashlib
 import time
 import tkinter as tk
+from admin_key_manager import AdminKeyManager
 from tkinter import messagebox, ttk
 from cryptography.fernet import Fernet
 import base64
@@ -339,6 +340,9 @@ class AccessCodeManager:
         self.access_codes_file = os.path.join(self.config_dir, "access_codes.enc")
         self.key_file = os.path.join(self.config_dir, "access_key.enc")
         
+        # Initialize secure admin key manager
+        self.admin_manager = AdminKeyManager()
+        
         # Generate or load encryption key
         self.encryption_key = self._get_or_create_key()
         
@@ -485,11 +489,8 @@ class AccessCodeManager:
         return True
     
     def _verify_admin_key(self, admin_key: str) -> bool:
-        """Verify admin key for code creation"""
-        # In production, this should be more secure
-        # For now, use a simple key verification
-        expected_key = "admin_secret_key_2024"  # Should be configurable
-        return admin_key == expected_key
+        """Verify admin key for code creation using secure system"""
+        return self.admin_manager.verify_admin_key(admin_key)
     
     def list_public_codes(self):
         """List only public access codes (what users can see)"""
@@ -498,6 +499,26 @@ class AccessCodeManager:
             if data.get("public", False):
                 public_codes[code] = data
         return public_codes
+    
+    def is_admin_key_set(self) -> bool:
+        """Check if admin key is configured"""
+        return self.admin_manager.is_admin_key_set()
+    
+    def is_admin_account_locked(self) -> bool:
+        """Check if admin account is locked"""
+        return self.admin_manager.is_account_locked()
+    
+    def get_admin_lockout_remaining(self) -> int:
+        """Get remaining lockout time in seconds"""
+        return self.admin_manager.get_lockout_time_remaining()
+    
+    def setup_admin_key(self, key: str) -> bool:
+        """Setup admin key"""
+        return self.admin_manager.set_admin_key(key)
+    
+    def get_admin_info(self) -> dict:
+        """Get admin account information"""
+        return self.admin_manager.get_admin_info()
     
     def generate_access_code(self, name: str, features: list, expires_days: int = None, max_uses: int = None, admin_key: str = None) -> str:
         """Generate a new access code (requires admin authentication)"""

@@ -13,6 +13,18 @@ def create_code(args):
     """Create a new access code"""
     code_manager = AccessCodeManager()
     
+    # Check if admin key is set
+    if not code_manager.is_admin_key_set():
+        print("Error: Admin key not configured")
+        print("Please run the application GUI to set up an admin key first")
+        return
+    
+    # Check if admin account is locked
+    if code_manager.is_admin_account_locked():
+        remaining = code_manager.get_admin_lockout_remaining()
+        print(f"Error: Admin account is locked for {remaining} more seconds")
+        return
+    
     # Parse expiry
     expires_days = None
     if args.expires:
@@ -65,8 +77,15 @@ def list_codes(args):
     """List access codes"""
     code_manager = AccessCodeManager()
     
-    # Get admin key if provided
+    # Check admin key status
     admin_key = args.admin_key if hasattr(args, 'admin_key') else None
+    
+    if admin_key:
+        # Check if admin account is locked
+        if code_manager.is_admin_account_locked():
+            remaining = code_manager.get_admin_lockout_remaining()
+            print(f"Error: Admin account is locked for {remaining} more seconds")
+            return
     
     codes = code_manager.list_access_codes(admin_key)
     
@@ -133,6 +152,20 @@ def status_code(args):
     if data.get('max_uses') and data['used_count'] >= data['max_uses']:
         print("Usage: EXHAUSTED")
 
+def setup_admin(args):
+    """Setup admin key"""
+    code_manager = AccessCodeManager()
+    
+    if len(args.key) < 8:
+        print("Error: Admin key must be at least 8 characters long")
+        return
+    
+    if code_manager.setup_admin_key(args.key):
+        print("Admin key set successfully!")
+        print("You can now create and manage access codes")
+    else:
+        print("Error: Failed to set admin key")
+
 def main():
     """Main CLI interface"""
     parser = argparse.ArgumentParser(description='Access Code Management CLI')
@@ -158,6 +191,10 @@ def main():
     status_parser = subparsers.add_parser('status', help='Get status of a code')
     status_parser.add_argument('code', help='Code to check')
     
+    # Setup admin key command
+    setup_parser = subparsers.add_parser('setup-admin', help='Setup admin key')
+    setup_parser.add_argument('key', help='Admin key to set')
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -176,6 +213,8 @@ def main():
         revoke_code(args)
     elif args.command == 'status':
         status_code(args)
+    elif args.command == 'setup-admin':
+        setup_admin(args)
 
 if __name__ == '__main__':
     main()
