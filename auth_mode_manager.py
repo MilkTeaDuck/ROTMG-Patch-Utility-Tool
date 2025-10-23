@@ -467,11 +467,15 @@ class AuthSettingsDialog:
             
             # Generate code
             code_manager = AccessCodeManager()
+            # Get admin key
+            admin_key = "admin_secret_key_2024"  # In production, this should be configurable
+            
             code = code_manager.generate_access_code(
                 name_var.get().strip(),
                 ["basic_patching"],
                 expires_var.get() if expires_var.get() > 0 else None,
-                max_uses_var.get() if max_uses_var.get() > 0 else None
+                max_uses_var.get() if max_uses_var.get() > 0 else None,
+                admin_key=admin_key
             )
             
             messagebox.showinfo("Access Code Generated", f"Code: {code}")
@@ -483,7 +487,9 @@ class AuthSettingsDialog:
     def list_access_codes(self):
         """List access codes"""
         code_manager = AccessCodeManager()
-        codes = code_manager.list_access_codes()
+        # Use admin key to see all codes
+        admin_key = "admin_secret_key_2024"  # In production, this should be configurable
+        codes = code_manager.list_access_codes(admin_key)
         
         if not codes:
             messagebox.showinfo("Access Codes", "No access codes found")
@@ -500,7 +506,7 @@ class AuthSettingsDialog:
         frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview for codes
-        columns = ("Code", "Name", "Uses", "Expires")
+        columns = ("Code", "Name", "Uses", "Expires", "Visibility")
         tree = ttk.Treeview(frame, columns=columns, show="headings")
         
         for col in columns:
@@ -510,11 +516,13 @@ class AuthSettingsDialog:
         # Add codes to tree
         for code, data in codes.items():
             expires = "Never" if not data.get("expires_at") else "Expired" if data["expires_at"] < time.time() else "Valid"
+            visibility = "Public" if data.get("public", False) else "Private"
             tree.insert("", "end", values=(
                 code,
                 data["name"],
                 f"{data['used_count']}/{data.get('max_uses', '∞')}",
-                expires
+                expires,
+                visibility
             ))
         
         tree.pack(fill=tk.BOTH, expand=True, pady=(0, 10))

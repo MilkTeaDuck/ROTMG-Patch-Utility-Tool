@@ -332,42 +332,80 @@ class ServerAuthManager:
 
 
 class AccessCodeManager:
-    """Manages access code-based authentication"""
+    """Secure access code manager with encrypted storage"""
     
     def __init__(self):
         self.config_dir = os.path.join(os.path.expanduser("~"), ".rotmg_patch_utility")
-        self.access_codes_file = os.path.join(self.config_dir, "access_codes.json")
+        self.access_codes_file = os.path.join(self.config_dir, "access_codes.enc")
+        self.key_file = os.path.join(self.config_dir, "access_key.enc")
+        
+        # Generate or load encryption key
+        self.encryption_key = self._get_or_create_key()
         
         # Load access codes
         self.access_codes = self._load_access_codes()
         
-    def _load_access_codes(self):
-        """Load access codes from file"""
-        if os.path.exists(self.access_codes_file):
+    def _get_or_create_key(self):
+        """Get or create encryption key"""
+        if os.path.exists(self.key_file):
             try:
-                with open(self.access_codes_file, 'r') as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError):
+                with open(self.key_file, 'rb') as f:
+                    return f.read()
+            except IOError:
                 pass
         
-        # Default access codes (you should change these!)
-        default_codes = {
+        # Generate new key
+        key = Fernet.generate_key()
+        try:
+            with open(self.key_file, 'wb') as f:
+                f.write(key)
+        except IOError:
+            pass
+        
+        return key
+    
+    def _encrypt_data(self, data):
+        """Encrypt data"""
+        f = Fernet(self.encryption_key)
+        encrypted_data = f.encrypt(json.dumps(data).encode())
+        return encrypted_data
+    
+    def _decrypt_data(self, encrypted_data):
+        """Decrypt data"""
+        try:
+            f = Fernet(self.encryption_key)
+            decrypted_data = f.decrypt(encrypted_data)
+            return json.loads(decrypted_data.decode())
+        except Exception:
+            return None
+    
+    def _load_access_codes(self):
+        """Load encrypted access codes"""
+        if os.path.exists(self.access_codes_file):
+            try:
+                with open(self.access_codes_file, 'rb') as f:
+                    encrypted_data = f.read()
+                return self._decrypt_data(encrypted_data) or self._get_default_codes()
+            except IOError:
+                pass
+        
+        # Create default codes
+        default_codes = self._get_default_codes()
+        self._save_access_codes(default_codes)
+        return default_codes
+    
+    def _get_default_codes(self):
+        """Get minimal default access codes (only public demo code)"""
+        return {
             "codes": {
                 "DEMO-2024-001": {
                     "name": "Demo Access",
-                    "expires_at": None,  # None means never expires
+                    "expires_at": None,
                     "features": ["basic_patching"],
                     "max_uses": 100,
                     "used_count": 0,
-                    "created_at": int(time.time())
-                },
-                "BETA-2024-002": {
-                    "name": "Beta Tester",
-                    "expires_at": int(time.time()) + (30 * 24 * 3600),  # 30 days
-                    "features": ["basic_patching", "advanced_features"],
-                    "max_uses": 10,
-                    "used_count": 0,
-                    "created_at": int(time.time())
+                    "created_at": int(time.time()),
+                    "public": True  # Only public demo code
                 }
             },
             "settings": {
@@ -376,18 +414,16 @@ class AccessCodeManager:
                 "require_numbers": True,
                 "require_dashes": True,
                 "max_attempts": 3,
-                "lockout_duration": 300  # 5 minutes
+                "lockout_duration": 300
             }
         }
-        
-        self._save_access_codes(default_codes)
-        return default_codes
     
     def _save_access_codes(self, data):
-        """Save access codes to file"""
+        """Save encrypted access codes"""
         try:
-            with open(self.access_codes_file, 'w') as f:
-                json.dump(data, f, indent=2)
+            encrypted_data = self._encrypt_data(data)
+            with open(self.access_codes_file, 'wb') as f:
+                f.write(encrypted_data)
         except IOError as e:
             print(f"Error saving access codes: {e}")
     
@@ -425,8 +461,50 @@ class AccessCodeManager:
             "code_data": code_data
         }
     
-    def generate_access_code(self, name: str, features: list, expires_days: int = None, max_uses: int = None) -> str:
-        """Generate a new access code"""
+    def add_access_code(self, code: str, name: str, features: list, expires_days: int = None, max_uses: int = None, admin_key: str = None):
+        """Add a new access code (requires admin authentication)"""
+        # Verify admin key
+        if not self._verify_admin_key(admin_key):
+            return False
+        
+        expires_at = None
+        if expires_days:
+            expires_at = int(time.time()) + (expires_days * 24 * 3600)
+        
+        self.access_codes["codes"][code] = {
+            "name": name,
+            "expires_at": expires_at,
+            "features": features,
+            "max_uses": max_uses,
+            "used_count": 0,
+            "created_at": int(time.time()),
+            "public": False  # Admin-created codes are not public
+        }
+        
+        self._save_access_codes(self.access_codes)
+        return True
+    
+    def _verify_admin_key(self, admin_key: str) -> bool:
+        """Verify admin key for code creation"""
+        # In production, this should be more secure
+        # For now, use a simple key verification
+        expected_key = "admin_secret_key_2024"  # Should be configurable
+        return admin_key == expected_key
+    
+    def list_public_codes(self):
+        """List only public access codes (what users can see)"""
+        public_codes = {}
+        for code, data in self.access_codes["codes"].items():
+            if data.get("public", False):
+                public_codes[code] = data
+        return public_codes
+    
+    def generate_access_code(self, name: str, features: list, expires_days: int = None, max_uses: int = None, admin_key: str = None) -> str:
+        """Generate a new access code (requires admin authentication)"""
+        # Verify admin key
+        if not self._verify_admin_key(admin_key):
+            raise PermissionError("Admin authentication required to generate access codes")
+        
         import random
         import string
         
@@ -450,7 +528,8 @@ class AccessCodeManager:
             "features": features,
             "max_uses": max_uses,
             "used_count": 0,
-            "created_at": int(time.time())
+            "created_at": int(time.time()),
+            "public": False  # Admin-created codes are not public by default
         }
         
         self._save_access_codes(self.access_codes)
@@ -464,9 +543,14 @@ class AccessCodeManager:
             return True
         return False
     
-    def list_access_codes(self) -> dict:
-        """List all access codes"""
-        return self.access_codes["codes"].copy()
+    def list_access_codes(self, admin_key: str = None) -> dict:
+        """List access codes (admin key required to see all codes)"""
+        if admin_key and self._verify_admin_key(admin_key):
+            # Admin can see all codes
+            return self.access_codes["codes"].copy()
+        else:
+            # Regular users can only see public codes
+            return self.list_public_codes()
 
 
 class ServerAuthDialog:
