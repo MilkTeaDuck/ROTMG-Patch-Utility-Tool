@@ -87,6 +87,9 @@ class ObjectBlockParser:
         Returns:
             Patch definition dictionary
         """
+        # Store the parsed object for name generation
+        self._current_parsed_object = parsed_object
+        
         original_block = parsed_object['original_block']
         original_length = parsed_object['original_length']
         
@@ -114,16 +117,29 @@ class ObjectBlockParser:
                 if field_name in parsed_object['elements']:
                     old_value = parsed_object['elements'][field_name]
                     
-                    # Replace the element content
-                    element_pattern = f'<{field_name}>{re.escape(old_value)}</{field_name}>'
-                    replacement = f'<{field_name}>{new_value}</{field_name}>'
-                    modified_block = re.sub(element_pattern, replacement, modified_block)
-                    
                     # Handle character count preservation for Description field
                     if field_name == 'Description' and self.preserve_character_count:
-                        modified_block = self._preserve_description_length(
-                            modified_block, old_value, new_value, original_length
-                        )
+                        # Calculate length difference and adjust the new value
+                        length_diff = len(old_value) - len(new_value)
+                        if length_diff > 0:
+                            # Need to add characters (spaces)
+                            adjusted_value = new_value + ' ' * length_diff
+                        elif length_diff < 0:
+                            # Need to remove characters
+                            adjusted_value = new_value[:len(old_value)]
+                        else:
+                            # Lengths are the same
+                            adjusted_value = new_value
+                        
+                        # Replace the element content with adjusted value
+                        element_pattern = f'<{field_name}>{re.escape(old_value)}</{field_name}>'
+                        replacement = f'<{field_name}>{adjusted_value}</{field_name}>'
+                        modified_block = re.sub(element_pattern, replacement, modified_block)
+                    else:
+                        # Regular replacement without character count preservation
+                        element_pattern = f'<{field_name}>{re.escape(old_value)}</{field_name}>'
+                        replacement = f'<{field_name}>{new_value}</{field_name}>'
+                        modified_block = re.sub(element_pattern, replacement, modified_block)
         
         # Create locator pattern
         locator = self._create_locator_pattern(parsed_object)
@@ -151,20 +167,67 @@ class ObjectBlockParser:
                 if field_name in parsed_object['elements']:
                     old_value = parsed_object['elements'][field_name]
                     
-                    # Create target pattern for this specific element
-                    target_pattern = f'<{field_name}>{re.escape(old_value)}</{field_name}>'
-                    replacement_pattern = f'<{field_name}>{new_value}</{field_name}>'
-                    
-                    patches.append({
-                        'target': target_pattern,
-                        'replacement': replacement_pattern
-                    })
-                    
-                    # Add character count preservation for Description
+                    # Handle character count preservation for Description field
                     if field_name == 'Description' and self.preserve_character_count:
-                        patches.append(self._create_length_preservation_patch(
-                            old_value, new_value, field_name
-                        ))
+                        # Calculate length difference and adjust the new value
+                        length_diff = len(old_value) - len(new_value)
+                        if length_diff > 0:
+                            # Need to add characters (spaces)
+                            adjusted_value = new_value + ' ' * length_diff
+                        elif length_diff < 0:
+                            # Need to remove characters
+                            adjusted_value = new_value[:len(old_value)]
+                        else:
+                            # Lengths are the same
+                            adjusted_value = new_value
+                        
+                        # Create target pattern for this specific element
+                        target_pattern = f'<{field_name}>{re.escape(old_value)}</{field_name}>'
+                        replacement_pattern = f'<{field_name}>{adjusted_value}</{field_name}>'
+                        
+                        patches.append({
+                            'target': target_pattern,
+                            'replacement': replacement_pattern
+                        })
+                    else:
+                        # Regular patch without character count preservation
+                        target_pattern = f'<{field_name}>{re.escape(old_value)}</{field_name}>'
+                        replacement_pattern = f'<{field_name}>{new_value}</{field_name}>'
+                        
+                        patches.append({
+                            'target': target_pattern,
+                            'replacement': replacement_pattern
+                        })
+        
+        # If ID was changed and character count preservation is enabled, 
+        # automatically adjust Description to maintain character count
+        if 'id' in changes and self.preserve_character_count and 'Description' in parsed_object['elements']:
+            # Only add Description patch if it wasn't already added above
+            if 'Description' not in changes:
+                old_desc = parsed_object['elements']['Description']
+                # Create a generic description for the new item
+                new_desc = f"A potion that boosts speed. Lasts 30 minutes."
+                
+                # Calculate length difference and adjust
+                length_diff = len(old_desc) - len(new_desc)
+                if length_diff > 0:
+                    # Need to add characters (spaces)
+                    adjusted_desc = new_desc + ' ' * length_diff
+                elif length_diff < 0:
+                    # Need to remove characters
+                    adjusted_desc = new_desc[:len(old_desc)]
+                else:
+                    # Lengths are the same
+                    adjusted_desc = new_desc
+                
+                # Create target pattern for Description
+                target_pattern = f'<Description>{re.escape(old_desc)}</Description>'
+                replacement_pattern = f'<Description>{adjusted_desc}</Description>'
+                
+                patches.append({
+                    'target': target_pattern,
+                    'replacement': replacement_pattern
+                })
         
         # Generate patch name
         patch_name = self._generate_patch_name(changes)
@@ -233,9 +296,13 @@ class ObjectBlockParser:
     def _generate_patch_name(self, changes: Dict[str, str]) -> str:
         """Generate a descriptive name for the patch"""
         if 'id' in changes:
-            old_id = changes.get('old_id', 'Unknown')
+            # Try to get the original ID from the parsed object
+            if hasattr(self, '_current_parsed_object') and self._current_parsed_object:
+                original_id = self._current_parsed_object['object_attributes'].get('id', 'Unknown')
+            else:
+                original_id = 'Unknown'
             new_id = changes['id']
-            return f"Spoof {old_id} as {new_id}"
+            return f"Spoof {original_id} as {new_id}"
         else:
             return "Custom Object Patch"
             

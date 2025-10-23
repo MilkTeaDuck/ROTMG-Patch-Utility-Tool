@@ -1,0 +1,10 @@
+{
+  "name": "Spoof Unknown as Potion of Speed",
+  "locator": "<Object[^>]*id=\"Crimson\\ Coins\\ x2\"[^>]*>.*?</Object>",
+  "patches": [
+    {
+      "target": "(<Object[^>]*id=\")[^\"]*(\")",
+      "replacement": "\\1Potion of Speed\\2"
+    }
+  ]
+}
