@@ -1,6 +1,6 @@
 ROTMG Patch Utility Tool
 Version: 1.0.0
-Build Date: Thu 23/10/2025 21:08:43.22
+Build Date: Thu 23/10/2025 23:29:05.45
 
 Features:
 - Modular patch system

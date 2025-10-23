@@ -19,6 +19,12 @@ fi
 # Create build directory
 mkdir -p build dist
 
+# Check if icon file exists
+if [ ! -f "duck_icon.ico" ]; then
+    echo "Warning: duck_icon.ico not found. Building without custom icon."
+    echo "To add the duck icon, place duck_icon.ico in the project root directory."
+fi
+
 # Build the executable using spec file
 echo "Building executable..."
 pyinstaller ROTMG_Patch_Utility.spec

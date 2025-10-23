@@ -15,6 +15,9 @@ class ROTMGPatchUtilityGUI:
         self.root.geometry("1000x700")
         self.root.resizable(True, True)
         
+        # Set application icon
+        self.set_icon()
+        
         # Initialize components
         self.patcher = ROTMGPatcher()
         self.patch_manager = PatchManager()
@@ -30,6 +33,20 @@ class ROTMGPatchUtilityGUI:
         self.create_menu()
         self.create_widgets()
         self.load_default_patches()
+    
+    def set_icon(self):
+        """Set the application icon"""
+        try:
+            # Try to load the duck icon
+            icon_path = os.path.join(os.path.dirname(__file__), "duck_icon.ico")
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+            else:
+                # Fallback to default tkinter icon
+                pass
+        except Exception as e:
+            # If icon loading fails, continue without icon
+            pass
     
     
     def create_menu(self):
@@ -171,16 +188,18 @@ Features:
 • Modular patch system
 • Enhanced patch creation and editing
 • Character count preservation
-• Secure user authentication
-• Comprehensive settings management
 • Backup and restore functionality
+• Real-time progress tracking
+• Cross-platform support
 
 Developed with Python and Tkinter
-Using UnityPy for asset manipulation
 
-© 2024 ROTMG Patch Utility Tool"""
+Credits:
+Created by MilkTeaDuck
+
+Special thanks to the ROTMG community for inspiration and feedback."""
         
-        messagebox.showinfo("About", about_text)
+        messagebox.showinfo("About ROTMG Patch Utility", about_text)
     
     def show_documentation(self):
         """Show documentation"""

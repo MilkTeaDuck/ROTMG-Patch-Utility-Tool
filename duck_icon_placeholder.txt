@@ -1,0 +1,15 @@
+# Placeholder for duck_icon.ico
+# This file should be replaced with the actual duck pixel art icon
+# Convert the duck image to .ico format with multiple sizes:
+# - 16x16 pixels
+# - 32x32 pixels  
+# - 48x48 pixels
+# - 64x64 pixels
+# - 128x128 pixels
+# - 256x256 pixels
+
+# Instructions:
+# 1. Save the duck pixel art as duck_icon.ico
+# 2. Place it in the project root directory
+# 3. The application will automatically use it
+# 4. PyInstaller will embed it in the executable

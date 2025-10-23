@@ -22,6 +22,12 @@ REM Create build directory
 if not exist "build" mkdir build
 if not exist "dist" mkdir dist
 
+REM Check if icon file exists
+if not exist "duck_icon.ico" (
+    echo Warning: duck_icon.ico not found. Building without custom icon.
+    echo To add the duck icon, place duck_icon.ico in the project root directory.
+)
+
 REM Build the executable using spec file
 echo Building executable...
 pyinstaller ROTMG_Patch_Utility.spec

@@ -13,14 +13,15 @@ This tool is a modular .exe application that allows you to:
 
 ## Features
 
-- **GUI Interface**: Modern tkinter-based interface for easy operation
-- **Modular Patch System**: Add, edit, and remove patches dynamically
-- **Selective Patching**: Choose which patches to apply
-- **Backup Management**: Automatic backup creation and restoration
-- **Real-time Logging**: Detailed progress and error reporting
-- **Progress Tracking**: Visual progress bars during patching
-- **Patch Validation**: Built-in validation for patch data integrity
-- **Cross-platform**: Works on Windows, Linux, and macOS
+- **🎨 Modern GUI Interface**: Clean tkinter-based interface with menu system
+- **📦 Modular Patch System**: Add, edit, and remove patches dynamically
+- **✅ Selective Patching**: Choose which patches to apply
+- **💾 Backup Management**: Automatic backup creation and restoration
+- **📊 Real-time Logging**: Detailed progress and error reporting
+- **📈 Progress Tracking**: Visual progress bars during patching
+- **🔍 Patch Validation**: Built-in validation for patch data integrity
+- **🌐 Cross-platform**: Works on Windows, Linux, and macOS
+- **🔓 Open Access**: No authentication required - use immediately
 
 ## Installation
 
