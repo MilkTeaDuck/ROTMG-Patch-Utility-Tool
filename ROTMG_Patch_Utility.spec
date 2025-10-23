@@ -1,19 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
 block_cipher = None
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('patches', 'patches')],
-    hiddenimports=[
-        'UnityPy',
-        'UnityPy.classes',
-        'UnityPy.classes.Object',
-        'UnityPy.classes.TextAsset',
-        'UnityPy.enums',
-        'UnityPy.helpers',
+    datas=collect_data_files('UnityPy') + [('patches', 'patches')],
+    hiddenimports=collect_submodules('UnityPy') + [
         'lz4',
         'lz4.frame',
         'lz4.block',
