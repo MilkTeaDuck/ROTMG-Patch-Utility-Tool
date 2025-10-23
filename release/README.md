@@ -63,9 +63,10 @@ chmod +x build.sh
 ### Managing Patches
 - **Auto-loading**: Patches are automatically loaded from the `patches/` directory on startup
 - **Enhanced Patch Creator**: Create patches by pasting object blocks and selecting fields to modify
+- **Enhanced Patch Editor**: Edit existing patches with full control over all patch rules and settings
 - **Character Count Preservation**: Automatically maintains character count when spoofing items (toggleable)
 - **Add Patch**: Create new patches with custom regex patterns or use the enhanced creator
-- **Edit Patch**: Modify existing patch names, locators, and rules
+- **Edit Patch**: Modify existing patch names, locators, and rules with the enhanced editor
 - **Remove Patch**: Delete patches you no longer need
 - **Save Patches**: Export your patch collection to a single JSON file
 - **Save to Directory**: Save all patches as individual files in the `patches/` directory
@@ -87,6 +88,22 @@ The application now includes an advanced patch creation system:
 3. Change `Description` to "A potion that boosts speed. Lasts 20 minutes."
 4. The system automatically adds spaces to match the original character count
 5. Preview the result and create the patch
+
+### Enhanced Patch Editing
+The application also includes a comprehensive patch editing system:
+
+1. **Patch Information**: Edit patch name and locator pattern
+2. **Patch Rules**: Modify all target and replacement patterns
+3. **Live Preview**: See the complete patch definition as JSON
+4. **Character Count Toggle**: Enable/disable character count preservation
+5. **Validation**: Ensures all required fields are filled
+
+#### Editing Existing Patches
+1. Select a patch from the list
+2. Click "Edit Patch"
+3. Modify patch name, locator, or individual patch rules
+4. Use the Preview tab to see the updated patch definition
+5. Save changes to update the patch
 
 ### Patch Directory Structure
 The application uses a `patches/` directory containing individual patch files:

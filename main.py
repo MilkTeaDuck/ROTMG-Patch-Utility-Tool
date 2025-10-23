@@ -7,6 +7,8 @@ import re
 from patcher_core import ROTMGPatcher
 from patch_manager import PatchManager
 from object_parser import ObjectBlockParser
+from auth_manager import AuthManager, LoginDialog
+from config_manager import ConfigManager, SettingsDialog
 
 class ROTMGPatchUtilityGUI:
     def __init__(self, root):
@@ -14,6 +16,18 @@ class ROTMGPatchUtilityGUI:
         self.root.title("ROTMG Assets Patch Utility Tool")
         self.root.geometry("1000x700")
         self.root.resizable(True, True)
+        
+        # Initialize authentication and configuration
+        self.auth_manager = AuthManager()
+        self.config_manager = ConfigManager(self.auth_manager)
+        self.current_user = None
+        
+        # Check if user needs to login
+        if not self.auth_manager.is_session_valid():
+            self.show_login()
+            if not self.current_user:
+                self.root.destroy()
+                return
         
         # Initialize components
         self.patcher = ROTMGPatcher()
@@ -27,8 +41,56 @@ class ROTMGPatchUtilityGUI:
         self.patch_data = []
         
         # Create GUI
+        self.create_menu()
         self.create_widgets()
         self.load_default_patches()
+    
+    def show_login(self):
+        """Show login dialog"""
+        login_dialog = LoginDialog(self.root, self.auth_manager)
+        result = login_dialog.show()
+        
+        if result and result.get("action") == "login":
+            self.current_user = result.get("username")
+            # Update window title to show logged in user
+            self.root.title(f"ROTMG Assets Patch Utility Tool - Logged in as {self.current_user}")
+        else:
+            self.current_user = None
+    
+    def create_menu(self):
+        """Create application menu bar"""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        # File menu
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="New Patch", command=self.add_patch)
+        file_menu.add_command(label="Load Patches", command=self.load_patches)
+        file_menu.add_command(label="Save Patches", command=self.save_patches_to_directory)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.root.quit)
+        
+        # Edit menu
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+        edit_menu.add_command(label="Settings", command=self.show_settings)
+        edit_menu.add_command(label="Clear Log", command=self.clear_log)
+        
+        # Tools menu
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(label="Create Backup", command=self.create_backup)
+        tools_menu.add_command(label="Restore Backup", command=self.restore_backup)
+        tools_menu.add_separator()
+        tools_menu.add_command(label="Apply Selected Patches", command=self.apply_patches)
+        tools_menu.add_command(label="Apply All Patches", command=self.apply_all_patches)
+        
+        # Help menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self.show_about)
+        help_menu.add_command(label="Documentation", command=self.show_documentation)
         
     def create_widgets(self):
         # Main frame
@@ -39,11 +101,25 @@ class ROTMGPatchUtilityGUI:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(4, weight=1)
+        main_frame.rowconfigure(5, weight=1)  # Updated row number
+        
+        # User info frame
+        user_frame = ttk.LabelFrame(main_frame, text="User Information", padding="5")
+        user_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        user_frame.columnconfigure(1, weight=1)
+        
+        # User info
+        ttk.Label(user_frame, text="Logged in as:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        user_label = ttk.Label(user_frame, text=self.current_user, font=("Arial", 10, "bold"))
+        user_label.grid(row=0, column=1, sticky=tk.W)
+        
+        # Logout button
+        logout_btn = ttk.Button(user_frame, text="Logout", command=self.logout)
+        logout_btn.grid(row=0, column=2, sticky=tk.E, padx=(10, 0))
         
         # File selection frame
         file_frame = ttk.LabelFrame(main_frame, text="File Selection", padding="5")
-        file_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        file_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         file_frame.columnconfigure(1, weight=1)
         
         # Resources.assets path
@@ -58,7 +134,7 @@ class ROTMGPatchUtilityGUI:
         
         # Patch management frame
         patch_frame = ttk.LabelFrame(main_frame, text="Patch Management", padding="5")
-        patch_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        patch_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         patch_frame.columnconfigure(0, weight=1)
         
         # Patch list with checkboxes
@@ -83,7 +159,7 @@ class ROTMGPatchUtilityGUI:
         
         # Control buttons frame
         control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        control_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
         ttk.Button(control_frame, text="Create Backup", command=self.create_backup).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(control_frame, text="Restore Backup", command=self.restore_backup).pack(side=tk.LEFT, padx=(0, 5))
@@ -93,11 +169,11 @@ class ROTMGPatchUtilityGUI:
         # Progress bar
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(main_frame, variable=self.progress_var, maximum=100)
-        self.progress_bar.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.progress_bar.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Log output
         log_frame = ttk.LabelFrame(main_frame, text="Log Output", padding="5")
-        log_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        log_frame.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
         
@@ -107,7 +183,7 @@ class ROTMGPatchUtilityGUI:
         # Status bar
         self.status_var = tk.StringVar(value="Ready")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
+        status_bar.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
         
     def log_message(self, message):
         """Add message to log output"""
@@ -116,6 +192,74 @@ class ROTMGPatchUtilityGUI:
         self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
         self.root.update_idletasks()
+    
+    def logout(self):
+        """Logout current user"""
+        if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
+            self.auth_manager.logout()
+            self.log_message("User logged out successfully")
+            self.root.destroy()
+    
+    def show_settings(self):
+        """Show settings dialog"""
+        settings_dialog = SettingsDialog(self.root, self.config_manager)
+        settings_dialog.show()
+    
+    def clear_log(self):
+        """Clear log output"""
+        self.log_text.config(state=tk.NORMAL)
+        self.log_text.delete(1.0, tk.END)
+        self.log_text.config(state=tk.DISABLED)
+        self.log_message("Log cleared")
+    
+    def show_about(self):
+        """Show about dialog"""
+        about_text = """ROTMG Assets Patch Utility Tool v1.0.0
+
+A powerful tool for patching Realm of the Mad God assets files.
+
+Features:
+• Modular patch system
+• Enhanced patch creation and editing
+• Character count preservation
+• Secure user authentication
+• Comprehensive settings management
+• Backup and restore functionality
+
+Developed with Python and Tkinter
+Using UnityPy for asset manipulation
+
+© 2024 ROTMG Patch Utility Tool"""
+        
+        messagebox.showinfo("About", about_text)
+    
+    def show_documentation(self):
+        """Show documentation"""
+        doc_text = """Documentation and Help
+
+Quick Start:
+1. Select your resources.assets file
+2. Choose patches to apply
+3. Click "Apply Selected Patches"
+
+Creating Patches:
+• Use "Add Patch" to create new patches
+• Paste object blocks and modify fields
+• Enable character count preservation for spoofing
+
+Settings:
+• Access via Edit > Settings menu
+• Configure themes, security, and behavior
+• Export/import your settings
+
+Security:
+• All credentials are encrypted locally
+• Session management with timeout
+• Secure password requirements
+
+For more help, check the README.md file."""
+        
+        messagebox.showinfo("Documentation", doc_text)
         
     def browse_resources(self):
         """Browse for resources.assets file"""

@@ -13,14 +13,16 @@ This tool is a modular .exe application that allows you to:
 
 ## Features
 
-- **GUI Interface**: Modern tkinter-based interface for easy operation
-- **Modular Patch System**: Add, edit, and remove patches dynamically
-- **Selective Patching**: Choose which patches to apply
-- **Backup Management**: Automatic backup creation and restoration
-- **Real-time Logging**: Detailed progress and error reporting
-- **Progress Tracking**: Visual progress bars during patching
-- **Patch Validation**: Built-in validation for patch data integrity
-- **Cross-platform**: Works on Windows, Linux, and macOS
+- **🔐 Secure Authentication**: User login system with encrypted credential storage
+- **🎨 Modern GUI Interface**: Clean tkinter-based interface with menu system
+- **📦 Modular Patch System**: Add, edit, and remove patches dynamically
+- **✅ Selective Patching**: Choose which patches to apply
+- **💾 Backup Management**: Automatic backup creation and restoration
+- **📊 Real-time Logging**: Detailed progress and error reporting
+- **📈 Progress Tracking**: Visual progress bars during patching
+- **🔍 Patch Validation**: Built-in validation for patch data integrity
+- **⚙️ Comprehensive Settings**: Configurable preferences and security options
+- **🌐 Cross-platform**: Works on Windows, Linux, and macOS
 
 ## Installation
 
@@ -28,6 +30,32 @@ This tool is a modular .exe application that allows you to:
 1. Download the latest release from the [Releases](https://github.com/MilkTeaDuck/ROTMG-Patch-Utility-Tool/releases) page
 2. Extract the files to your desired location
 3. Run `ROTMG_Patch_Utility.exe`
+
+## 🔐 Authentication Setup
+
+The application includes a secure authentication system to protect your patches and settings.
+
+### First Time Setup
+1. **Launch the application** - You'll be prompted to login
+2. **Click "Register"** to create a new account
+3. **Enter your credentials**:
+   - Username (required)
+   - Email (optional)
+   - Password (must meet security requirements)
+4. **Complete registration** and login
+
+### Password Requirements
+- Minimum 8 characters
+- Must contain uppercase letters, lowercase letters, and numbers
+- Optional special characters (configurable in settings)
+
+### Security Features
+- **Encrypted credential storage** using AES-256
+- **Session management** with automatic timeout
+- **Account lockout** after failed login attempts
+- **Configurable security settings**
+
+For detailed security information, see [SECURITY.md](SECURITY.md).
 
 ### Option 2: Build from Source
 1. Clone the repository:

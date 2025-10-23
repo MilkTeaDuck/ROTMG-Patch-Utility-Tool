@@ -144,3 +144,27 @@ venv.bak/
 test_output/
 test_results/
 *.test.log
+
+# Authentication and security files
+.rotmg_patch_utility/
+credentials.enc
+session.json
+config.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# User data and settings
+user_data/
+settings/
+preferences/
+*.user
+*.settings
+
+# Sensitive configuration files
+secrets.json
+auth.json
+tokens.json
+*.secret
+*.private
