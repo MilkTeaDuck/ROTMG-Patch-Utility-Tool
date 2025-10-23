@@ -191,12 +191,12 @@ class ROTMGPatchUtilityGUI:
         index = selection[0]
         patch = self.patch_data[index]
         
-        # For now, use a simple message box to inform about the limitation
-        messagebox.showinfo("Edit Patch", 
-                           "Patch editing is currently limited. For complex patches with character count preservation, "
-                           "please delete the existing patch and create a new one using the enhanced patch creator.")
-        
-        # TODO: Implement enhanced patch editing dialog
+        # Use the enhanced patch dialog for editing
+        dialog = EnhancedPatchEditDialog(self.root, "Edit Patch", patch, self.object_parser)
+        if dialog.result:
+            self.patch_data[index] = dialog.result
+            self.update_patch_list()
+            self.log_message(f"Updated patch: {dialog.result['name']}")
             
     def remove_patch(self):
         """Remove selected patch"""
@@ -338,6 +338,269 @@ class ROTMGPatchUtilityGUI:
         thread.daemon = True
         thread.start()
 
+
+class EnhancedPatchDialog:
+    def __init__(self, parent, title, object_parser):
+        self.result = None
+        self.object_parser = object_parser
+        self.parsed_object = None
+        self.changes = {}
+        
+        # Create dialog window
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(title)
+        self.dialog.geometry("800x600")
+        self.dialog.resizable(True, True)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        
+        # Create widgets
+        self.create_widgets()
+        
+        # Wait for dialog to close
+        self.dialog.wait_window()
+
+class EnhancedPatchEditDialog:
+    def __init__(self, parent, title, existing_patch, object_parser):
+        self.result = None
+        self.object_parser = object_parser
+        self.existing_patch = existing_patch
+        self.parsed_object = None
+        self.changes = {}
+        
+        # Create dialog window
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(title)
+        self.dialog.geometry("800x600")
+        self.dialog.resizable(True, True)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        
+        # Create widgets
+        self.create_widgets()
+        
+        # Wait for dialog to close
+        self.dialog.wait_window()
+        
+    def create_widgets(self):
+        # Main notebook for tabs
+        notebook = ttk.Notebook(self.dialog)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Patch Information Tab
+        self.create_patch_info_tab(notebook)
+        
+        # Patch Rules Tab
+        self.create_patch_rules_tab(notebook)
+        
+        # Preview Tab
+        self.create_preview_tab(notebook)
+        
+        # Buttons
+        button_frame = ttk.Frame(self.dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        
+        ttk.Button(button_frame, text="OK", command=self.ok_clicked).pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel_clicked).pack(side=tk.RIGHT)
+        
+    def create_patch_info_tab(self, notebook):
+        """Create the patch information tab"""
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Patch Info")
+        
+        # Patch name
+        ttk.Label(frame, text="Patch Name:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10), pady=(10, 5))
+        self.name_var = tk.StringVar(value=self.existing_patch['name'])
+        ttk.Entry(frame, textvariable=self.name_var, width=60).grid(row=0, column=1, sticky=(tk.W, tk.E), pady=(10, 5))
+        
+        # Locator pattern
+        ttk.Label(frame, text="Locator Pattern:").grid(row=1, column=0, sticky=tk.W, padx=(0, 10), pady=(0, 5))
+        self.locator_var = tk.StringVar(value=self.existing_patch['locator'])
+        locator_entry = ttk.Entry(frame, textvariable=self.locator_var, width=60)
+        locator_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        
+        # Character count preservation toggle
+        toggle_frame = ttk.Frame(frame)
+        toggle_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
+        
+        self.preserve_count_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(toggle_frame, text="Preserve character count for spoofing", 
+                       variable=self.preserve_count_var,
+                       command=self.toggle_character_preservation).pack(side=tk.LEFT)
+        
+        # Configure grid weights
+        frame.columnconfigure(1, weight=1)
+        
+    def create_patch_rules_tab(self, notebook):
+        """Create the patch rules tab"""
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Patch Rules")
+        
+        # Instructions
+        ttk.Label(frame, text="Edit patch rules:").pack(anchor=tk.W, pady=(0, 10))
+        
+        # Create scrollable frame for patch rules
+        canvas = tk.Canvas(frame)
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        self.rules_frame = scrollable_frame
+        self.rule_vars = {}
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Populate with existing patch rules
+        self.populate_patch_rules()
+        
+    def create_preview_tab(self, notebook):
+        """Create the preview tab"""
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Preview")
+        
+        # Current patch info
+        ttk.Label(frame, text="Current Patch Definition:").pack(anchor=tk.W, pady=(0, 5))
+        self.current_preview = scrolledtext.ScrolledText(frame, height=15, wrap=tk.WORD, state=tk.DISABLED)
+        self.current_preview.pack(fill=tk.BOTH, expand=True)
+        
+        # Update preview button
+        ttk.Button(frame, text="Update Preview", 
+                  command=self.update_preview).pack(pady=(10, 0))
+        
+        # Show current patch definition
+        self.update_current_preview()
+        
+    def populate_patch_rules(self):
+        """Populate the patch rules tab with existing rules"""
+        # Clear existing widgets
+        for widget in self.rules_frame.winfo_children():
+            widget.destroy()
+            
+        self.rule_vars = {}
+        
+        for i, patch_rule in enumerate(self.existing_patch['patches']):
+            # Rule number
+            ttk.Label(self.rules_frame, text=f"Rule {i+1}:").grid(row=i*2, column=0, sticky=tk.W, padx=(0, 10), pady=(5, 2))
+            
+            # Target pattern
+            ttk.Label(self.rules_frame, text="Target:").grid(row=i*2+1, column=0, sticky=tk.W, padx=(0, 10), pady=(0, 5))
+            target_var = tk.StringVar(value=patch_rule['target'])
+            self.rule_vars[f'target_{i}'] = target_var
+            ttk.Entry(self.rules_frame, textvariable=target_var, width=50).grid(row=i*2+1, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+            
+            # Replacement pattern
+            ttk.Label(self.rules_frame, text="Replacement:").grid(row=i*2+1, column=2, sticky=tk.W, padx=(10, 10), pady=(0, 5))
+            replacement_var = tk.StringVar(value=patch_rule['replacement'])
+            self.rule_vars[f'replacement_{i}'] = replacement_var
+            ttk.Entry(self.rules_frame, textvariable=replacement_var, width=50).grid(row=i*2+1, column=3, sticky=(tk.W, tk.E), pady=(0, 5))
+            
+        # Configure grid weights
+        self.rules_frame.columnconfigure(1, weight=1)
+        self.rules_frame.columnconfigure(3, weight=1)
+        
+    def update_current_preview(self):
+        """Update the current patch preview"""
+        import json
+        preview_text = json.dumps(self.existing_patch, indent=2)
+        
+        self.current_preview.config(state=tk.NORMAL)
+        self.current_preview.delete("1.0", tk.END)
+        self.current_preview.insert("1.0", preview_text)
+        self.current_preview.config(state=tk.DISABLED)
+        
+    def update_preview(self):
+        """Update the preview with current changes"""
+        try:
+            # Collect current values
+            updated_patch = {
+                'name': self.name_var.get().strip(),
+                'locator': self.locator_var.get().strip(),
+                'patches': []
+            }
+            
+            # Collect patch rules
+            for i in range(len(self.existing_patch['patches'])):
+                target = self.rule_vars[f'target_{i}'].get().strip()
+                replacement = self.rule_vars[f'replacement_{i}'].get().strip()
+                
+                if target and replacement:
+                    updated_patch['patches'].append({
+                        'target': target,
+                        'replacement': replacement
+                    })
+            
+            # Update preview
+            import json
+            preview_text = json.dumps(updated_patch, indent=2)
+            
+            self.current_preview.config(state=tk.NORMAL)
+            self.current_preview.delete("1.0", tk.END)
+            self.current_preview.insert("1.0", preview_text)
+            self.current_preview.config(state=tk.DISABLED)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update preview: {str(e)}")
+            
+    def toggle_character_preservation(self):
+        """Toggle character count preservation"""
+        self.object_parser.set_character_count_preservation(self.preserve_count_var.get())
+        
+    def ok_clicked(self):
+        """OK button clicked"""
+        if not self.name_var.get().strip():
+            messagebox.showerror("Error", "Patch name is required")
+            return
+            
+        if not self.locator_var.get().strip():
+            messagebox.showerror("Error", "Locator pattern is required")
+            return
+            
+        try:
+            # Collect current values
+            updated_patch = {
+                'name': self.name_var.get().strip(),
+                'locator': self.locator_var.get().strip(),
+                'patches': []
+            }
+            
+            # Collect patch rules
+            for i in range(len(self.existing_patch['patches'])):
+                target = self.rule_vars[f'target_{i}'].get().strip()
+                replacement = self.rule_vars[f'replacement_{i}'].get().strip()
+                
+                if target and replacement:
+                    updated_patch['patches'].append({
+                        'target': target,
+                        'replacement': replacement
+                    })
+            
+            if not updated_patch['patches']:
+                messagebox.showerror("Error", "At least one patch rule is required")
+                return
+                
+            self.result = updated_patch
+            self.dialog.destroy()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update patch: {str(e)}")
+            
+    def cancel_clicked(self):
+        """Cancel button clicked"""
+        self.dialog.destroy()
 
 class EnhancedPatchDialog:
     def __init__(self, parent, title, object_parser):
