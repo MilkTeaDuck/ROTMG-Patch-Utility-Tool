@@ -1,5 +1,5 @@
 @echo off
-echo Building ROTMG Patch Utility Tool...
+echo Building ROTMG Patch Utility Tool (Alternative Method)...
 
 REM Check if Python is installed
 python --version >nul 2>&1
@@ -22,9 +22,27 @@ REM Create build directory
 if not exist "build" mkdir build
 if not exist "dist" mkdir dist
 
-REM Build the executable using spec file
+REM Build the executable with additional options to fix DLL issues
 echo Building executable...
-pyinstaller ROTMG_Patch_Utility.spec
+pyinstaller --onefile --console --name "ROTMG_Patch_Utility" ^
+    --add-data "patches;patches" ^
+    --hidden-import "UnityPy" ^
+    --hidden-import "UnityPy.classes" ^
+    --hidden-import "UnityPy.classes.Object" ^
+    --hidden-import "UnityPy.classes.TextAsset" ^
+    --hidden-import "UnityPy.enums" ^
+    --hidden-import "UnityPy.helpers" ^
+    --hidden-import "lz4" ^
+    --hidden-import "lz4.frame" ^
+    --hidden-import "lz4.block" ^
+    --hidden-import "struct" ^
+    --hidden-import "io" ^
+    --hidden-import "zlib" ^
+    --hidden-import "bz2" ^
+    --collect-all "UnityPy" ^
+    --collect-all "lz4" ^
+    main.py
+
 if errorlevel 1 (
     echo Error: Failed to build executable
     pause
@@ -39,4 +57,5 @@ copy "LICENSE" "dist\" 2>nul
 xcopy "patches" "dist\patches\" /E /I /Q 2>nul
 
 echo Build complete! Executable is in the 'dist' directory.
+echo Note: This version runs with console window for debugging.
 pause

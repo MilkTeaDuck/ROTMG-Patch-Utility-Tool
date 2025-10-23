@@ -48,9 +48,22 @@ The built executable will be in the `dist/` directory along with:
 
 ## Troubleshooting
 
-If you encounter issues:
+### "Ordinal Not Found" Error
+If you encounter an "Ordinal Not Found" error when running the executable:
 
-1. Make sure Python and pip are installed and in your PATH
-2. Try running `pip install --upgrade pip` first
-3. On Windows, you might need to run the command prompt as Administrator
-4. On Linux/macOS, you might need to use `python3` and `pip3` instead of `python` and `pip`
+1. **Try the console build**: Run `build_console.bat` instead of `build.bat` - this creates a version with console output for debugging
+2. **Check dependencies**: Make sure all required packages are installed:
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+3. **Use the spec file**: The build scripts now use a comprehensive PyInstaller spec file that includes all necessary hidden imports
+4. **Alternative build method**: If the issue persists, try building manually:
+   ```bash
+   pyinstaller --onefile --console --collect-all UnityPy --collect-all lz4 main.py
+   ```
+
+### Common Issues
+- **Missing DLLs**: The spec file includes all UnityPy and lz4 dependencies
+- **Import errors**: All necessary hidden imports are specified
+- **File not found**: The patches directory is automatically included in the build

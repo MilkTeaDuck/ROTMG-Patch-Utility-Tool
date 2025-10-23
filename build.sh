@@ -19,9 +19,9 @@ fi
 # Create build directory
 mkdir -p build dist
 
-# Build the executable
+# Build the executable using spec file
 echo "Building executable..."
-pyinstaller --onefile --windowed --name "ROTMG_Patch_Utility" main.py
+pyinstaller ROTMG_Patch_Utility.spec
 if [ $? -ne 0 ]; then
     echo "Error: Failed to build executable"
     exit 1
