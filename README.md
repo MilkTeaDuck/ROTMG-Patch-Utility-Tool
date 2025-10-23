@@ -62,12 +62,31 @@ chmod +x build.sh
 
 ### Managing Patches
 - **Auto-loading**: Patches are automatically loaded from the `patches/` directory on startup
-- **Add Patch**: Create new patches with custom regex patterns
+- **Enhanced Patch Creator**: Create patches by pasting object blocks and selecting fields to modify
+- **Character Count Preservation**: Automatically maintains character count when spoofing items (toggleable)
+- **Add Patch**: Create new patches with custom regex patterns or use the enhanced creator
 - **Edit Patch**: Modify existing patch names, locators, and rules
 - **Remove Patch**: Delete patches you no longer need
 - **Save Patches**: Export your patch collection to a single JSON file
 - **Save to Directory**: Save all patches as individual files in the `patches/` directory
 - **Load Patches**: Import patches from a JSON file (overrides auto-loaded patches)
+
+### Enhanced Patch Creation
+The application now includes an advanced patch creation system:
+
+1. **Object Block Input**: Paste the complete original object block
+2. **Automatic Parsing**: The system parses the object and extracts all editable fields
+3. **Field Modification**: Select which fields to change and enter new values
+4. **Character Count Preservation**: When spoofing items, the system automatically adjusts description length to maintain the original character count
+5. **Live Preview**: See exactly how the modified object block will look
+6. **Automatic Patch Generation**: The system generates all necessary regex patterns and patch rules
+
+#### Example: Spoofing Lucky Clover as Potion of Speed
+1. Paste the original Lucky Clover object block
+2. Change `id` from "Lucky Clover" to "Potion of Speed"
+3. Change `Description` to "A potion that boosts speed. Lasts 20 minutes."
+4. The system automatically adds spaces to match the original character count
+5. Preview the result and create the patch
 
 ### Patch Directory Structure
 The application uses a `patches/` directory containing individual patch files:

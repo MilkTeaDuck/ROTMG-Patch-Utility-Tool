@@ -6,6 +6,7 @@ import threading
 import re
 from patcher_core import ROTMGPatcher
 from patch_manager import PatchManager
+from object_parser import ObjectBlockParser
 
 class ROTMGPatchUtilityGUI:
     def __init__(self, root):
@@ -17,6 +18,7 @@ class ROTMGPatchUtilityGUI:
         # Initialize components
         self.patcher = ROTMGPatcher()
         self.patch_manager = PatchManager()
+        self.object_parser = ObjectBlockParser()
         
         # Variables
         self.resources_path = tk.StringVar()
@@ -173,7 +175,7 @@ class ROTMGPatchUtilityGUI:
             
     def add_patch(self):
         """Add a new patch"""
-        dialog = PatchEditDialog(self.root, "Add New Patch")
+        dialog = EnhancedPatchDialog(self.root, "Add New Patch", self.object_parser)
         if dialog.result:
             self.patch_data.append(dialog.result)
             self.update_patch_list()
@@ -188,11 +190,13 @@ class ROTMGPatchUtilityGUI:
             
         index = selection[0]
         patch = self.patch_data[index]
-        dialog = PatchEditDialog(self.root, "Edit Patch", patch)
-        if dialog.result:
-            self.patch_data[index] = dialog.result
-            self.update_patch_list()
-            self.log_message(f"Updated patch: {dialog.result['name']}")
+        
+        # For now, use a simple message box to inform about the limitation
+        messagebox.showinfo("Edit Patch", 
+                           "Patch editing is currently limited. For complex patches with character count preservation, "
+                           "please delete the existing patch and create a new one using the enhanced patch creator.")
+        
+        # TODO: Implement enhanced patch editing dialog
             
     def remove_patch(self):
         """Remove selected patch"""
@@ -334,14 +338,18 @@ class ROTMGPatchUtilityGUI:
         thread.daemon = True
         thread.start()
 
-class PatchEditDialog:
-    def __init__(self, parent, title, patch_data=None):
+
+class EnhancedPatchDialog:
+    def __init__(self, parent, title, object_parser):
         self.result = None
+        self.object_parser = object_parser
+        self.parsed_object = None
+        self.changes = {}
         
         # Create dialog window
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(title)
-        self.dialog.geometry("600x500")
+        self.dialog.geometry("800x600")
         self.dialog.resizable(True, True)
         self.dialog.transient(parent)
         self.dialog.grab_set()
@@ -350,122 +358,249 @@ class PatchEditDialog:
         self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
         
         # Create widgets
-        self.create_widgets(patch_data)
+        self.create_widgets()
         
         # Wait for dialog to close
         self.dialog.wait_window()
         
-    def create_widgets(self, patch_data):
-        main_frame = ttk.Frame(self.dialog, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+    def create_widgets(self):
+        # Main notebook for tabs
+        notebook = ttk.Notebook(self.dialog)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Patch name
-        ttk.Label(main_frame, text="Patch Name:").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
-        self.name_var = tk.StringVar(value=patch_data['name'] if patch_data else "")
-        ttk.Entry(main_frame, textvariable=self.name_var, width=50).grid(row=0, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        # Object Block Input Tab
+        self.create_object_input_tab(notebook)
         
-        # Locator pattern
-        ttk.Label(main_frame, text="Locator Pattern:").grid(row=1, column=0, sticky=tk.W, pady=(0, 5))
-        self.locator_var = tk.StringVar(value=patch_data['locator'] if patch_data else "")
-        locator_entry = ttk.Entry(main_frame, textvariable=self.locator_var, width=50)
-        locator_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        # Field Changes Tab
+        self.create_field_changes_tab(notebook)
         
-        # Patches list
-        ttk.Label(main_frame, text="Patches:").grid(row=2, column=0, sticky=(tk.W, tk.N), pady=(10, 0))
-        
-        patches_frame = ttk.Frame(main_frame)
-        patches_frame.grid(row=2, column=1, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(10, 0))
-        patches_frame.columnconfigure(0, weight=1)
-        
-        self.patches_listbox = tk.Listbox(patches_frame, height=8)
-        self.patches_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 5))
-        
-        patches_scrollbar = ttk.Scrollbar(patches_frame, orient=tk.VERTICAL, command=self.patches_listbox.yview)
-        patches_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
-        self.patches_listbox.configure(yscrollcommand=patches_scrollbar.set)
-        
-        # Patch buttons
-        patch_buttons = ttk.Frame(patches_frame)
-        patch_buttons.grid(row=0, column=2, sticky=(tk.N, tk.S), padx=(5, 0))
-        
-        ttk.Button(patch_buttons, text="Add", command=self.add_patch).pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(patch_buttons, text="Edit", command=self.edit_patch).pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(patch_buttons, text="Remove", command=self.remove_patch).pack(fill=tk.X, pady=(0, 5))
-        
-        # Load patches if provided
-        self.patches = patch_data['patches'].copy() if patch_data else []
-        self.update_patches_list()
+        # Preview Tab
+        self.create_preview_tab(notebook)
         
         # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=3, column=0, columnspan=2, pady=(20, 0))
+        button_frame = ttk.Frame(self.dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
-        ttk.Button(button_frame, text="OK", command=self.ok_clicked).pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Button(button_frame, text="Cancel", command=self.cancel_clicked).pack(side=tk.LEFT)
+        ttk.Button(button_frame, text="OK", command=self.ok_clicked).pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel_clicked).pack(side=tk.RIGHT)
         
+    def create_object_input_tab(self, notebook):
+        """Create the object block input tab"""
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Object Block")
+        
+        # Character count preservation toggle
+        toggle_frame = ttk.Frame(frame)
+        toggle_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.preserve_count_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(toggle_frame, text="Preserve character count for spoofing", 
+                       variable=self.preserve_count_var,
+                       command=self.toggle_character_preservation).pack(side=tk.LEFT)
+        
+        # Object block input
+        ttk.Label(frame, text="Paste the original object block:").pack(anchor=tk.W, pady=(0, 5))
+        
+        self.object_text = scrolledtext.ScrolledText(frame, height=15, wrap=tk.WORD)
+        self.object_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        
+        # Parse button
+        parse_frame = ttk.Frame(frame)
+        parse_frame.pack(fill=tk.X)
+        
+        ttk.Button(parse_frame, text="Parse Object Block", 
+                  command=self.parse_object_block).pack(side=tk.LEFT)
+        
+        self.parse_status = ttk.Label(parse_frame, text="")
+        self.parse_status.pack(side=tk.LEFT, padx=(10, 0))
+        
+    def create_field_changes_tab(self, notebook):
+        """Create the field changes tab"""
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Field Changes")
+        
+        # Instructions
+        ttk.Label(frame, text="Select fields to modify and enter new values:").pack(anchor=tk.W, pady=(0, 10))
+        
+        # Create scrollable frame for field entries
+        canvas = tk.Canvas(frame)
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        self.field_frame = scrollable_frame
+        self.field_vars = {}
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+    def create_preview_tab(self, notebook):
+        """Create the preview tab"""
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Preview")
+        
+        # Original block
+        ttk.Label(frame, text="Original Object Block:").pack(anchor=tk.W, pady=(0, 5))
+        self.original_preview = scrolledtext.ScrolledText(frame, height=8, wrap=tk.WORD, state=tk.DISABLED)
+        self.original_preview.pack(fill=tk.X, pady=(0, 10))
+        
+        # Modified block
+        ttk.Label(frame, text="Modified Object Block:").pack(anchor=tk.W, pady=(0, 5))
+        self.modified_preview = scrolledtext.ScrolledText(frame, height=8, wrap=tk.WORD, state=tk.DISABLED)
+        self.modified_preview.pack(fill=tk.BOTH, expand=True)
+        
+        # Update preview button
+        ttk.Button(frame, text="Update Preview", 
+                  command=self.update_preview).pack(pady=(10, 0))
+        
+    def toggle_character_preservation(self):
+        """Toggle character count preservation"""
+        self.object_parser.set_character_count_preservation(self.preserve_count_var.get())
+        
+    def parse_object_block(self):
+        """Parse the object block and populate field changes"""
+        object_text = self.object_text.get("1.0", tk.END).strip()
+        
+        if not object_text:
+            self.parse_status.config(text="Please enter an object block", foreground="red")
+            return
+            
+        # Validate and parse
+        is_valid, error_msg = self.object_parser.validate_object_block(object_text)
+        if not is_valid:
+            self.parse_status.config(text=f"Error: {error_msg}", foreground="red")
+            return
+            
+        try:
+            self.parsed_object = self.object_parser.parse_object_block(object_text)
+            self.populate_field_changes()
+            self.update_original_preview()
+            self.parse_status.config(text="Object block parsed successfully", foreground="green")
+            
+        except Exception as e:
+            self.parse_status.config(text=f"Parse error: {str(e)}", foreground="red")
+            
+    def populate_field_changes(self):
+        """Populate the field changes tab with editable fields"""
+        # Clear existing widgets
+        for widget in self.field_frame.winfo_children():
+            widget.destroy()
+            
+        self.field_vars = {}
+        
+        if not self.parsed_object:
+            return
+            
+        # Get editable fields
+        fields = self.object_parser.get_editable_fields(self.parsed_object)
+        
+        row = 0
+        for field in fields:
+            # Field label
+            ttk.Label(self.field_frame, text=f"{field}:").grid(row=row, column=0, sticky=tk.W, padx=(0, 10), pady=2)
+            
+            # Current value
+            if field in self.parsed_object['object_attributes']:
+                current_value = self.parsed_object['object_attributes'][field]
+            elif field in self.parsed_object['elements']:
+                current_value = self.parsed_object['elements'][field]
+            else:
+                current_value = ""
+                
+            # Entry widget
+            var = tk.StringVar(value=current_value)
+            self.field_vars[field] = var
+            
+            entry = ttk.Entry(self.field_frame, textvariable=var, width=50)
+            entry.grid(row=row, column=1, sticky=(tk.W, tk.E), pady=2)
+            
+            # Change indicator
+            change_label = ttk.Label(self.field_frame, text="", foreground="blue")
+            change_label.grid(row=row, column=2, padx=(10, 0), pady=2)
+            
+            # Bind change detection
+            var.trace('w', lambda *args, f=field, l=change_label: self.detect_field_change(f, l))
+            
+            row += 1
+            
         # Configure grid weights
-        main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        self.field_frame.columnconfigure(1, weight=1)
         
-    def update_patches_list(self):
-        """Update the patches listbox"""
-        self.patches_listbox.delete(0, tk.END)
-        for i, patch in enumerate(self.patches):
-            self.patches_listbox.insert(tk.END, f"{i+1}. {patch['target'][:50]}...")
+    def detect_field_change(self, field_name, change_label):
+        """Detect when a field value changes"""
+        current_value = self.field_vars[field_name].get()
+        
+        # Get original value
+        if field_name in self.parsed_object['object_attributes']:
+            original_value = self.parsed_object['object_attributes'][field_name]
+        elif field_name in self.parsed_object['elements']:
+            original_value = self.parsed_object['elements'][field_name]
+        else:
+            original_value = ""
             
-    def add_patch(self):
-        """Add a new patch"""
-        dialog = PatchRuleDialog(self.dialog, "Add Patch Rule")
-        if dialog.result:
-            self.patches.append(dialog.result)
-            self.update_patches_list()
+        if current_value != original_value:
+            change_label.config(text="*", foreground="red")
+            self.changes[field_name] = current_value
+        else:
+            change_label.config(text="")
+            if field_name in self.changes:
+                del self.changes[field_name]
+                
+    def update_original_preview(self):
+        """Update the original preview"""
+        if self.parsed_object:
+            self.original_preview.config(state=tk.NORMAL)
+            self.original_preview.delete("1.0", tk.END)
+            self.original_preview.insert("1.0", self.parsed_object['original_block'])
+            self.original_preview.config(state=tk.DISABLED)
             
-    def edit_patch(self):
-        """Edit selected patch"""
-        selection = self.patches_listbox.curselection()
-        if not selection:
-            messagebox.showwarning("Warning", "Please select a patch to edit")
+    def update_preview(self):
+        """Update the modified preview"""
+        if not self.parsed_object:
+            messagebox.showwarning("Warning", "Please parse an object block first")
             return
             
-        index = selection[0]
-        patch = self.patches[index]
-        dialog = PatchRuleDialog(self.dialog, "Edit Patch Rule", patch)
-        if dialog.result:
-            self.patches[index] = dialog.result
-            self.update_patches_list()
-            
-    def remove_patch(self):
-        """Remove selected patch"""
-        selection = self.patches_listbox.curselection()
-        if not selection:
-            messagebox.showwarning("Warning", "Please select a patch to remove")
+        if not self.changes:
+            messagebox.showwarning("Warning", "Please make some changes to preview")
             return
             
-        index = selection[0]
-        del self.patches[index]
-        self.update_patches_list()
-        
+        try:
+            preview_text = self.object_parser.preview_changes(self.parsed_object, self.changes)
+            
+            self.modified_preview.config(state=tk.NORMAL)
+            self.modified_preview.delete("1.0", tk.END)
+            self.modified_preview.insert("1.0", preview_text)
+            self.modified_preview.config(state=tk.DISABLED)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate preview: {str(e)}")
+            
     def ok_clicked(self):
         """OK button clicked"""
-        if not self.name_var.get().strip():
-            messagebox.showerror("Error", "Patch name is required")
+        if not self.parsed_object:
+            messagebox.showerror("Error", "Please parse an object block first")
             return
             
-        if not self.locator_var.get().strip():
-            messagebox.showerror("Error", "Locator pattern is required")
+        if not self.changes:
+            messagebox.showerror("Error", "Please make at least one change")
             return
             
-        if not self.patches:
-            messagebox.showerror("Error", "At least one patch rule is required")
-            return
+        try:
+            # Create patch definition
+            patch_def = self.object_parser.create_patch_from_changes(self.parsed_object, self.changes)
+            self.result = patch_def
+            self.dialog.destroy()
             
-        self.result = {
-            'name': self.name_var.get().strip(),
-            'locator': self.locator_var.get().strip(),
-            'patches': self.patches
-        }
-        self.dialog.destroy()
-        
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to create patch: {str(e)}")
+            
     def cancel_clicked(self):
         """Cancel button clicked"""
         self.dialog.destroy()
