@@ -1,0 +1,10 @@
+{
+  "name": "Better Tips",
+  "locator": "<Tips>",
+  "patches": [
+    {
+      "target": "(<Tip>).*?(</Tip>)",
+      "replacement": "\\1This patch provided by Ducky P.S. I hope youre having a great day mwah &lt;3!\\2"
+    }
+  ]
+}

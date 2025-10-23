@@ -1,0 +1,37 @@
+#!/bin/bash
+
+echo "Building ROTMG Patch Utility Tool..."
+
+# Check if Python is installed
+if ! command -v python3 &> /dev/null; then
+    echo "Error: Python3 is not installed or not in PATH"
+    exit 1
+fi
+
+# Install requirements
+echo "Installing requirements..."
+pip3 install -r requirements.txt
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to install requirements"
+    exit 1
+fi
+
+# Create build directory
+mkdir -p build dist
+
+# Build the executable
+echo "Building executable..."
+pyinstaller --onefile --windowed --name "ROTMG_Patch_Utility" main.py
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to build executable"
+    exit 1
+fi
+
+# Copy additional files to dist directory
+echo "Copying additional files..."
+cp patches.json dist/ 2>/dev/null || true
+cp README.md dist/ 2>/dev/null || true
+cp LICENSE dist/ 2>/dev/null || true
+cp -r patches dist/ 2>/dev/null || true
+
+echo "Build complete! Executable is in the 'dist' directory."

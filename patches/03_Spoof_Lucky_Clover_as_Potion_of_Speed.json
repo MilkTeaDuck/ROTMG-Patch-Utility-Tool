@@ -1,0 +1,14 @@
+{
+  "name": "Spoof Lucky Clover as Potion of Speed",
+  "locator": "<Object[^>]*id=\"Lucky Clover\"[^>]*>.*?</Object>",
+  "patches": [
+    {
+      "target": "<Object type=\"0xcc2\" id=\"Lucky Clover\">",
+      "replacement": "<Object type=\"0xcc2\" id=\"Potion of Speed\">"
+    },
+    {
+      "target": "<Description>A lucky shamrock that will make enemies drop more and better loot! Lasts 20 minutes.</Description>",
+      "replacement": "<Description>A potion that boosts speed. Lasts 20 minutes.                      </Description>"
+    }
+  ]
+}

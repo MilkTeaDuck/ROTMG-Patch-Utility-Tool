@@ -1,0 +1,10 @@
+{
+  "name": "Moonlight Village Pet Stasis Patch",
+  "locator": "<Object[^>]*id=\"MV Reward Shrine\"[^>]*>.*?</Object>",
+  "patches": [
+    {
+      "target": "(<Object[^>]*id=\"MV Reward Shrine\"[^>]*>.*?<ObjectId>)Invisible(</ObjectId>)",
+      "replacement": "\\1InvisibleLaser\\2"
+    }
+  ]
+}

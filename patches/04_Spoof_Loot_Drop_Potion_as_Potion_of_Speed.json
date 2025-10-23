@@ -1,0 +1,14 @@
+{
+  "name": "Spoof Loot Drop Potion as Potion of Speed",
+  "locator": "<Object[^>]*id=\"Loot Drop Potion\"[^>]*>.*?</Object>",
+  "patches": [
+    {
+      "target": "<Object type=\"0xc69\" id=\"Loot Drop Potion\">",
+      "replacement": "<Object type=\"0xc69\" id=\"Potion of Speed\">"
+    },
+    {
+      "target": "<Description>A potion that causes enemies to drop more loot! Lasts 30 minutes.</Description>",
+      "replacement": "<Description>A potion that boosts speed. Lasts 30 minutes.               </Description>"
+    }
+  ]
+}

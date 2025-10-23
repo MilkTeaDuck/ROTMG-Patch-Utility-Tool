@@ -1,0 +1,14 @@
+{
+  "name": "Spoof Crimson Coins x11 as Potion of Speed",
+  "locator": "<Object[^>]*id=\"Crimson Coins x11\"[^>]*>.*?</Object>",
+  "patches": [
+    {
+      "target": "<Object type=\"0x9eda\" id=\"Crimson Coins x11\">",
+      "replacement": "<Object type=\"0x9eda\" id=\"Potion of Speed\">"
+    },
+    {
+      "target": "<Description>Coins once touched by the Hemomancer's hand are now resurfacing across the Realm. Once thought scarce, now they are countless. Coveted by many for the mystery they hold, all are searching - few are digging to unearth what is concealed.</Description>",
+      "replacement": "<Description>A potion that boosts speed. Lasts 30 minutes.                                                                                                                                           </Description>"
+    }
+  ]
+}
