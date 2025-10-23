@@ -31,6 +31,36 @@ This tool is a modular .exe application that allows you to:
 2. Extract the files to your desired location
 3. Run `ROTMG_Patch_Utility.exe`
 
+## 🔐 Authentication Options
+
+The application supports multiple authentication methods:
+
+### 🏠 Local Authentication
+- **Encrypted credential storage** using AES-256
+- **Session management** with automatic timeout
+- **Works offline** - no internet required
+- **Account lockout** after failed attempts
+
+### 🌐 Server Authentication
+- **Remote server validation** with license keys or username/password
+- **Session heartbeat** to maintain connection
+- **Offline mode** when server unavailable
+- **Centralized user management**
+
+### 🎫 Access Code Authentication
+- **Simple access codes** (e.g., DEMO-2024-001)
+- **No user accounts** required
+- **Expiration dates** and usage limits
+- **Perfect for demos** and temporary access
+
+### Setup Options
+1. **First launch**: Choose authentication method
+2. **Local**: Register new account with username/password
+3. **Server**: Enter license key or credentials
+4. **Access Code**: Enter provided access code
+
+For detailed setup instructions, see [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md).
+
 ## 🔐 Authentication Setup
 
 The application includes a secure authentication system to protect your patches and settings.

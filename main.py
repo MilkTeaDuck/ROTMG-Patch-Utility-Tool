@@ -9,6 +9,7 @@ from patch_manager import PatchManager
 from object_parser import ObjectBlockParser
 from auth_manager import AuthManager, LoginDialog
 from config_manager import ConfigManager, SettingsDialog
+from auth_mode_manager import AuthModeManager, AuthModeSelectorDialog
 
 class ROTMGPatchUtilityGUI:
     def __init__(self, root):
@@ -18,13 +19,13 @@ class ROTMGPatchUtilityGUI:
         self.root.resizable(True, True)
         
         # Initialize authentication and configuration
-        self.auth_manager = AuthManager()
-        self.config_manager = ConfigManager(self.auth_manager)
+        self.auth_mode_manager = AuthModeManager()
+        self.config_manager = ConfigManager(self.auth_mode_manager.auth_manager)
         self.current_user = None
         
-        # Check if user needs to login
-        if not self.auth_manager.is_session_valid():
-            self.show_login()
+        # Check if user needs to authenticate
+        if not self.auth_mode_manager.is_authenticated():
+            self.show_authentication()
             if not self.current_user:
                 self.root.destroy()
                 return
@@ -45,17 +46,32 @@ class ROTMGPatchUtilityGUI:
         self.create_widgets()
         self.load_default_patches()
     
-    def show_login(self):
-        """Show login dialog"""
-        login_dialog = LoginDialog(self.root, self.auth_manager)
-        result = login_dialog.show()
+    def show_authentication(self):
+        """Show authentication dialog"""
+        # First show mode selector if multiple modes available
+        available_modes = self.auth_mode_manager.get_available_modes()
+        if len(available_modes) > 1:
+            mode_selector = AuthModeSelectorDialog(self.root, self.auth_mode_manager)
+            result = mode_selector.show()
+            
+            if not result or result.get("action") != "continue":
+                self.current_user = None
+                return
         
-        if result and result.get("action") == "login":
-            self.current_user = result.get("username")
+        # Now authenticate with selected mode
+        result = self.auth_mode_manager.authenticate(self.root)
+        
+        if result and result.get("action") in ["login", "authenticate", "validate"]:
+            self.current_user = self.auth_mode_manager.get_current_user()
             # Update window title to show logged in user
-            self.root.title(f"ROTMG Assets Patch Utility Tool - Logged in as {self.current_user}")
+            auth_mode_name = self.auth_mode_manager.modes[self.auth_mode_manager.current_mode]["name"]
+            self.root.title(f"ROTMG Assets Patch Utility Tool - {auth_mode_name}: {self.current_user}")
         else:
             self.current_user = None
+    
+    def show_login(self):
+        """Show login dialog (legacy method for compatibility)"""
+        self.show_authentication()
     
     def create_menu(self):
         """Create application menu bar"""
@@ -75,6 +91,7 @@ class ROTMGPatchUtilityGUI:
         edit_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Edit", menu=edit_menu)
         edit_menu.add_command(label="Settings", command=self.show_settings)
+        edit_menu.add_command(label="Authentication Settings", command=self.show_auth_settings)
         edit_menu.add_command(label="Clear Log", command=self.clear_log)
         
         # Tools menu
@@ -196,7 +213,7 @@ class ROTMGPatchUtilityGUI:
     def logout(self):
         """Logout current user"""
         if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
-            self.auth_manager.logout()
+            self.auth_mode_manager.logout()
             self.log_message("User logged out successfully")
             self.root.destroy()
     
@@ -204,6 +221,12 @@ class ROTMGPatchUtilityGUI:
         """Show settings dialog"""
         settings_dialog = SettingsDialog(self.root, self.config_manager)
         settings_dialog.show()
+    
+    def show_auth_settings(self):
+        """Show authentication settings dialog"""
+        from auth_mode_manager import AuthSettingsDialog
+        auth_settings_dialog = AuthSettingsDialog(self.root, self.auth_mode_manager)
+        auth_settings_dialog.show()
     
     def clear_log(self):
         """Clear log output"""
